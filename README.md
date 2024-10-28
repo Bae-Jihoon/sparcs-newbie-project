@@ -1,1 +1,0 @@
-# sparcs-newbie-project
