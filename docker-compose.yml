@@ -1,20 +1,46 @@
 version: '3.8'
 
 services:
-  mysql:
+  mysql_local:
     image: mysql:8.0
-    container_name: mysql8-container
-    restart: unless-stopped
+    container_name: newbie_local
     environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: newbie
-      MYSQL_USER: sparcs
-      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: local_password
+      MYSQL_DATABASE: local_db
+      MYSQL_USER: local_user
+      MYSQL_PASSWORD: local_password
     ports:
-      - "3306:3306"
+      - "3307:3306"  # Local DB 포트 매핑
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_local_data:/var/lib/mysql
+
+  mysql_dev:
+    image: mysql:8.0
+    container_name: newbie_dev
+    environment:
+      MYSQL_ROOT_PASSWORD: dev_password
+      MYSQL_DATABASE: dev_db
+      MYSQL_USER: dev_user
+      MYSQL_PASSWORD: dev_password
+    ports:
+      - "3308:3306"  # Dev DB 포트 매핑
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+
+  mysql_prod:
+    image: mysql:8.0
+    container_name: newbie_prod
+    environment:
+      MYSQL_ROOT_PASSWORD: prod_password
+      MYSQL_DATABASE: prod_db
+      MYSQL_USER: prod_user
+      MYSQL_PASSWORD: prod_password
+    ports:
+      - "3309:3306"  # Prod DB 포트 매핑
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
 
 volumes:
-  mysql_data:
-    driver: local
+  mysql_local_data:
+  mysql_dev_data:
+  mysql_prod_data:

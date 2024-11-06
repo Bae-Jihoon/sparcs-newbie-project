@@ -14,45 +14,63 @@ datasource db {
 }
 
 model User {
-  id         Int        @id @default(autoincrement())
-  username   String     @unique
-  rank       String?    @default("bronze")
-  promotedAt DateTime?  @updatedAt
-  startedAt  DateTime?  @default(now())
-  posts      Post[]
-  RankPost   RankPost[]
-  Comment    Comment[]
+  id            Int        @id @default(autoincrement())
+  username      String     @unique
+  startedAt     DateTime
+  createdAt     DateTime?  @default(now())
+  posts         Post[]
+  comments      Comment[]
+  spots         Spot[]
+  spotComments  SpotComment[]
 }
 
 model Post {
   id        Int       @id @default(autoincrement())
-  title     String
-  content   String
-  published Boolean?  @default(false)
-  author    User?     @relation(fields: [authorId], references: [id])
-  authorId  Int?
+  title     String    @db.VarChar(50)
+  content   String    @db.Text
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  Int
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   likes     Int       @default(0)
   comments  Comment[]
 }
 
-model RankPost {
-  id        Int      @id @default(autoincrement())
-  title     String
-  subject   User?    @relation(fields: [subjectId], references: [id])
-  subjectId Int?
-  createdAt DateTime
-  published Boolean? @default(false)
+model Comment {
+  id        Int       @id @default(autoincrement())
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  Int
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    Int
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  childs    Comment[] @relation("CommentReplies")
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  parentId  Int?      //this.parentId
 }
 
-model Comment {
-  id        Int      @id @default(autoincrement())
-  author    User?    @relation(fields: [authorId], references: [id])
-  authorId  Int?
-  post      Post?    @relation(fields: [postId], references: [id])
-  postId    Int?
-  content   String
-  createdAt DateTime
-  updatedAt DateTime
+model Spot {
+  id           Int          @id @default(autoincrement())
+  name         String       @db.VarChar(20)
+  description  String       @db.VarChar(255)
+  latitude     Decimal      @db.Decimal(10, 8)
+  longitude    Decimal      @db.Decimal(11, 8)
+  createdAt    DateTime     @default(now())
+  author       User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId     Int
+  avgRate      Decimal?     @db.Decimal(2, 1)
+  sharelink    String       @unique
+  comments     SpotComment[]
+}
+
+model SpotComment {
+  id           Int       @id @default(autoincrement())
+  content      String?   @db.VarChar(50)
+  rate         Int       @db.TinyInt
+  created_at   DateTime  @default(now())
+  author       User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId     Int
+  spot         Spot      @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  spotId       Int
 }
