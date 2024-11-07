@@ -8,8 +8,8 @@ import {
   Delete,
 } from '@nestjs/common';
 import { AppService } from './app.service';
-import { UserService } from './user.service';
-import { PostService } from './post.service';
+import { UserService } from './user/user.service';
+import { PostService } from './post/post.service';
 import { User as UserModel, Post as PostModel } from '@prisma/client';
 
 @Controller()
@@ -28,13 +28,6 @@ export class AppController {
   @Get('post/:id')
   async getPostById(@Param('id') id: string): Promise<PostModel> {
     return this.postService.post({ id: Number(id) });
-  }
-
-  @Get('feed')
-  async getPublishedPosts(): Promise<PostModel[]> {
-    return this.postService.posts({
-      where: { published: true },
-    });
   }
 
   @Get('filtered-posts/:searchString')
@@ -57,30 +50,18 @@ export class AppController {
 
   @Post('post')
   async createDraft(
-    @Body() postData: { title: string; content?: string; username: string },
+    @Body() postData: { title: string; content?: string; nickname: string },
   ): Promise<PostModel> {
-    const { title, content, username } = postData;
+    const { title, content, nickname } = postData;
     return this.postService.createPost({
       title,
       content,
       author: {
-        connect: { username: username },
+        connect: { nickname: nickname },
       },
     });
   }
 
-  @Post('user')
-  async signupUser(@Body() userData: { username: string }): Promise<UserModel> {
-    return this.userService.createUser(userData);
-  }
-
-  @Put('publish/:id')
-  async publishPost(@Param('id') id: string): Promise<PostModel> {
-    return this.postService.updatePost({
-      where: { id: Number(id) },
-      data: { published: true },
-    });
-  }
 
   @Delete('post/:id')
   async deletePost(@Param('id') id: string): Promise<PostModel> {

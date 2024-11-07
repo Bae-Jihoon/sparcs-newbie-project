@@ -15,8 +15,10 @@ datasource db {
 
 model User {
   id            Int        @id @default(autoincrement())
-  username      String     @unique
-  startedAt     DateTime
+  email         String     @unique
+  nickname      String     @unique
+  password      String
+  startedAt     DateTime?
   createdAt     DateTime?  @default(now())
   posts         Post[]
   comments      Comment[]
