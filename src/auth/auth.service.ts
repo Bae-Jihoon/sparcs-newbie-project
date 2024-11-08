@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, UnauthorizedException, NotFoundException } from "@nestjs/common";
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UpdateStartedAtDto } from '../dto/update-startedAt.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -23,7 +24,7 @@ export class AuthService {
       where: { nickname },
     });
     if (existingName) {
-      throw new BadRequestException('Email is already in use');
+      throw new BadRequestException('Nickname is already in use');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -35,6 +36,18 @@ export class AuthService {
       },
     });
     return user;
+  }
+
+  async updateStartedAt(userId: number, updateStartedAtDto: UpdateStartedAtDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId} });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { startedAt: updateStartedAtDto.startedAt },
+    });
   }
 
   async login(email: string, password: string) {
