@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import {MiddlewareConsumer, Module} from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -8,6 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { PostModule } from './post/post.module';
+import { JwtStrategy } from "./auth/jwt.strategy";
+import * as cookieParser from 'cookie-parser';
 
 @Module({
   imports: [
@@ -20,6 +22,10 @@ import { PostModule } from './post/post.module';
     PostModule
   ],
   controllers: [AppController],
-  providers: [AppService, UserService, PostService, PrismaService],
+  providers: [AppService, UserService, PostService, PrismaService, JwtStrategy],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(cookieParser()).forRoutes('*'); // 모든 라우트에 cookie-parser 적용
+  }
+}

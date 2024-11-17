@@ -6,7 +6,10 @@ import {
   Body,
   Put,
   Delete,
+  Res
 } from '@nestjs/common';
+import { Response } from 'express';
+import { join } from 'path';
 import { AppService } from './app.service';
 import { UserService } from './user/user.service';
 import { PostService } from './post/post.service';
@@ -21,50 +24,9 @@ export class AppController {
   ) {}
 
   @Get('/')
-  getHello(): string {
-    return this.appService.getHello();
-  }
-
-  @Get('post/:id')
-  async getPostById(@Param('id') id: string): Promise<PostModel> {
-    return this.postService.post({ id: Number(id) });
-  }
-
-  @Get('filtered-posts/:searchString')
-  async getFilteredPosts(
-    @Param('searchString') searchString: string,
-  ): Promise<PostModel[]> {
-    return this.postService.posts({
-      where: {
-        OR: [
-          {
-            title: { contains: searchString },
-          },
-          {
-            content: { contains: searchString },
-          },
-        ],
-      },
-    });
-  }
-
-  @Post('post')
-  async createDraft(
-    @Body() postData: { title: string; content?: string; nickname: string },
-  ): Promise<PostModel> {
-    const { title, content, nickname } = postData;
-    return this.postService.createPost({
-      title,
-      content,
-      author: {
-        connect: { nickname: nickname },
-      },
-    });
+  renderHomePage(@Res() res: Response) {
+    res.sendFile(join(__dirname, '../../../newbie-project-client/index.html'));
   }
 
 
-  @Delete('post/:id')
-  async deletePost(@Param('id') id: string): Promise<PostModel> {
-    return this.postService.deletePost({ id: Number(id) });
-  }
 }

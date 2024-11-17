@@ -34,6 +34,12 @@ export class AuthService {
         nickname,
         password: hashedPassword,
       },
+      select: {
+        id: true,
+        email: true,
+        nickname: true,
+        createdAt: true,
+      },
     });
     return user;
   }
@@ -43,7 +49,7 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
+    console.log(updateStartedAtDto.startedAt);
     return this.prisma.user.update({
       where: { id: userId },
       data: { startedAt: updateStartedAtDto.startedAt },
@@ -57,7 +63,7 @@ export class AuthService {
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) throw new UnauthorizedException('Invalid credentials');
 
-    const payload = { username: user.email, sub: user.id };
+    const payload = { sub: user.id, email: user.email };
     return { access_token: this.jwtService.sign(payload) };
   }
 }
