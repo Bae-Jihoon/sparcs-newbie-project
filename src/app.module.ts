@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { UserService } from './user/user.service';
 import { PostService } from './post/post.service';
 import { SpotService } from './spot/spot.service';
+import { ReverseGeocodingService } from "./geocode/reverse-geocoding.service";
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
@@ -25,7 +26,7 @@ import * as cookieParser from 'cookie-parser';
     SpotModule
   ],
   controllers: [AppController],
-  providers: [AppService, UserService, PostService, SpotService, PrismaService, JwtStrategy],
+  providers: [AppService, UserService, PostService, SpotService, ReverseGeocodingService, PrismaService, JwtStrategy],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
