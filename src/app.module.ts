@@ -4,11 +4,13 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserService } from './user/user.service';
 import { PostService } from './post/post.service';
+import { SpotService } from './spot/spot.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { PostModule } from './post/post.module';
 import { JwtStrategy } from "./auth/jwt.strategy";
+import { SpotModule } from './spot/spot.module';
 import * as cookieParser from 'cookie-parser';
 
 @Module({
@@ -19,10 +21,11 @@ import * as cookieParser from 'cookie-parser';
     }),
     AuthModule,
     UserModule,
-    PostModule
+    PostModule,
+    SpotModule
   ],
   controllers: [AppController],
-  providers: [AppService, UserService, PostService, PrismaService, JwtStrategy],
+  providers: [AppService, UserService, PostService, SpotService, PrismaService, JwtStrategy],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {

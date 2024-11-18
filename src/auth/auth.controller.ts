@@ -1,28 +1,20 @@
 import { Controller, Post, Body, Patch, Param, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { UpdateStartedAtDto } from "../dto/update-startedAt.dto";
 import { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  //AUTH-001 (회원 가입)
   @Post('register')
   async register(@Body() createUserDto : CreateUserDto) {
     const { email, nickname, password } = createUserDto;
     return this.authService.register(email, nickname, password);
   }
 
-  @Patch(':userId/startedAt')
-  async updateStartedAt(
-    @Param('userId') userId: string,
-    @Body() updateStartedAtDto: UpdateStartedAtDto,
-  ) {
-    console.log(updateStartedAtDto);
-    return this.authService.updateStartedAt(+userId, updateStartedAtDto);
-  }
-
+  //AUTH-002 (사용자 로그인)
   @Post('login')
   async login(
       @Body('email') email: string,

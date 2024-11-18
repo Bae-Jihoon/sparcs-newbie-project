@@ -9,11 +9,13 @@ import {
     UseGuards,
     Req,
     UseInterceptors,
-    UploadedFiles, Put, HttpCode
+    UploadedFiles,
+    Put,
+    HttpCode
 } from '@nestjs/common';
 import {Post as PostModel, Prisma} from ".prisma/client";
 import {PostService} from "./post.service";
-import {JwtAuthGuard} from "../jwt-auth.guard";
+import {JwtAuthGuard} from "../auth/jwt-auth.guard";
 import { Request } from "express";
 import {FilesInterceptor} from "@nestjs/platform-express";
 import {diskStorage} from "multer";

@@ -6,51 +6,95 @@ import { User, Prisma } from '@prisma/client';
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  async user(
-    userWhereUniqueInput: Prisma.UserWhereUniqueInput,
-  ): Promise<User | null> {
+  //USER-001
+  async getUser(
+    userId: number,
+  ): Promise<User> {
     return this.prisma.user.findUnique({
-      where: userWhereUniqueInput,
+      where: { id: userId},
     });
   }
 
-  async users(params: {
-    skip?: number;
-    take?: number;
-    cursor?: Prisma.UserWhereUniqueInput;
-    where?: Prisma.UserWhereInput;
-    orderBy?: Prisma.UserOrderByWithRelationInput;
-  }): Promise<User[]> {
-    const { skip, take, cursor, where, orderBy } = params;
-    return this.prisma.user.findMany({
-      skip,
-      take,
-      cursor,
-      where,
-      orderBy,
-    });
-  }
-
-  async createUser(data: Prisma.UserCreateInput): Promise<User> {
-    return this.prisma.user.create({
-      data,
-    });
-  }
-
-  async updateUser(params: {
-    where: Prisma.UserWhereUniqueInput;
-    data: Prisma.UserUpdateInput;
-  }): Promise<User> {
-    const { where, data } = params;
+  //USER-002
+  async updateUser(
+    userId: number,
+    updateData: { email?: string; nickname?: string; password?: string; startedAt?: Date },
+  ): Promise<User> {
     return this.prisma.user.update({
-      data,
-      where,
+      where: { id: userId},
+      data: {
+        email: updateData.email,
+        nickname: updateData.nickname,
+        password: updateData.password,
+        startedAt: new Date(updateData.startedAt),
+      }
     });
   }
 
-  async deleteUser(where: Prisma.UserWhereUniqueInput): Promise<User> {
-    return this.prisma.user.delete({
-      where,
+  //USER-003
+  async getPostsOfUser(userId: number) {
+    return this.prisma.post.findMany({
+      where: { authorId: userId },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  //USER-004
+  async getCommentsOfUser(userId: number) {
+    return this.prisma.comment.findMany({
+      where: { authorId: userId },
+      select: {
+        postId: true,
+        post: {
+          select: {
+            title: true,
+          }
+        },
+        likenum: true,
+        content: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  //USER-005
+  async getSpotsOfUser(userId: number) {
+    return this.prisma.spot.findMany({
+      where: { authorId: userId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        latitude: true,
+        longitude: true,
+        roadAddress: true,
+        avgRate: true,
+        sharelink: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  //USER-006
+  async getSpotCommentsOfUser(userId: number) {
+    return this.prisma.spotComment.findMany({
+      where: { authorId: userId },
+      select: {
+        spotId: true,
+        spot: {
+          select: {
+            name: true,
+          }
+        },
+        rate: true,
+        content: true,
+        createdAt: true,
+      },
     });
   }
 }

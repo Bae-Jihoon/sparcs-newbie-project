@@ -94,6 +94,7 @@ model Spot {
   description String        @db.VarChar(255)
   latitude    Decimal       @db.Decimal(10, 8)
   longitude   Decimal       @db.Decimal(11, 8)
+  roadAddress String
   createdAt   DateTime      @default(now())
   author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId    Int
@@ -103,12 +104,12 @@ model Spot {
 }
 
 model SpotComment {
-  id         Int      @id @default(autoincrement())
-  content    String?  @db.VarChar(50)
-  rate       Int      @db.TinyInt
-  created_at DateTime @default(now())
-  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorId   Int
-  spot       Spot     @relation(fields: [spotId], references: [id], onDelete: Cascade)
-  spotId     Int
+  id        Int      @id @default(autoincrement())
+  content   String?  @db.VarChar(50)
+  rate      Int      @db.TinyInt
+  createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  Int
+  spot      Spot     @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  spotId    Int
 }

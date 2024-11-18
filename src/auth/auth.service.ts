@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable, UnauthorizedException, NotFoundException } from "@nestjs/common";
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UpdateStartedAtDto } from '../dto/update-startedAt.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -11,6 +10,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
+  //AUTH-001
   async register(email: string, nickname: string, password: string) {
 
     const existingEmail = await this.prisma.user.findUnique({
@@ -44,18 +44,7 @@ export class AuthService {
     return user;
   }
 
-  async updateStartedAt(userId: number, updateStartedAtDto: UpdateStartedAtDto) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId} });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    console.log(updateStartedAtDto.startedAt);
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { startedAt: updateStartedAtDto.startedAt },
-    });
-  }
-
+  //AUTH-002
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) throw new UnauthorizedException('Invalid credentials');
