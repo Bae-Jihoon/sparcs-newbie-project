@@ -85,7 +85,6 @@ export class PostController {
         @Body() postData: { title: string; content: string; },
         @Req() req: Request,
     ): Promise<PostModel> {
-        //console.log(files);
         const { title, content } = postData;
         const userId = req.user.userId
 

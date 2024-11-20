@@ -105,7 +105,7 @@ export class PostService {
     if (post.authorId !== userId) {
       throw new ForbiddenException('You can only update your own posts.');
     }
-
+    console.log(postData);
     const updatedPost = await this.prisma.post.update({
       where: { id: postData.id },
       data: {
@@ -217,10 +217,16 @@ export class PostService {
     return this.prisma.$transaction(async (tx) => {
       await tx.comment.create({
         data: {
-          postId: postId,
-          authorId: commentData.authorId,
+          post: {
+            connect: { id: postId }
+          },
+          author: {
+            connect: {id: commentData.authorId }
+          },
           content: commentData.content,
-          parentId: commentData.parentId
+          parent: commentData.parentId
+              ? { connect: { id: commentData.parentId } } // 부모 댓글 연결
+              : undefined
         }
       })
       await tx.post.update({

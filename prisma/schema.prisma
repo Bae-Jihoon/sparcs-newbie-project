@@ -98,7 +98,8 @@ model Spot {
   createdAt   DateTime      @default(now())
   author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId    Int
-  avgRate     Decimal?      @db.Decimal(2, 1)
+  avgRate     Float         @default(0)
+  commentnum  Int           @default(0)
   sharelink   String        @unique
   comments    SpotComment[]
 }
@@ -112,4 +113,6 @@ model SpotComment {
   authorId  Int
   spot      Spot     @relation(fields: [spotId], references: [id], onDelete: Cascade)
   spotId    Int
+
+  @@unique([authorId, spotId])
 }

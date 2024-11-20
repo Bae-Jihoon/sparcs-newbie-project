@@ -16,24 +16,22 @@ export class ReverseGeocodingService {
                 },
                 params: {
                     coords: `${longitude},${latitude}`,
-                    orders: 'roadaddr', // 도로명 주소 우선 반환
+                    orders: 'roadaddr',
                     output: 'json',
                 },
             });
 
-            // 응답에서 도로명 주소 가져오기
             const results = response.data.results;
             if (results.length > 0) {
                 const region = results[0].region;
                 const land = results[0].land;
 
-                // 도로명 주소 조합
                 const area1 = region?.area1?.name || ''; // 시/도
                 const area2 = region?.area2?.name || ''; // 시/군/구
                 const roadName = land?.name || ''; // 도로명
                 const buildingNumber = land?.number1 || ''; // 건물 번호
 
-                return `${area1} ${area2} ${roadName} ${buildingNumber}`;
+                return `${area1} ${area2} ${roadName} ${buildingNumber}`.trim();
             }
 
             throw new NotFoundException('No address found for the given coordinates');

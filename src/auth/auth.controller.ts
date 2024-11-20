@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Patch, Param, Res } from '@nestjs/common';
+import { Controller, Post, Body, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { Response } from 'express';
@@ -23,7 +23,6 @@ export class AuthController {
   ) {
     const { access_token } = await this.authService.login(email, password);
 
-    // 쿠키에 JWT 설정
     response.cookie('access_token', access_token, {
       httpOnly: false,
       secure: false,
@@ -31,5 +30,17 @@ export class AuthController {
     });
 
     return { message: 'Login successful' };
+  }
+
+  //AUTH-003 (사용자 로그아웃)
+  @Post('logout')
+  logout(@Res() res: Response) {
+    res.clearCookie('access_token', {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'none',     //나중에 수정
+    });
+
+    return res.status(200).json({ message: 'Logout successful' });
   }
 }
