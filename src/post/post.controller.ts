@@ -18,23 +18,29 @@ import {PostService} from "./post.service";
 import {JwtAuthGuard} from "../auth/jwt-auth.guard";
 import { Request } from "express";
 import {FilesInterceptor} from "@nestjs/platform-express";
+import { S3Service } from '../s3/s3.service';
 import {diskStorage} from "multer";
 import {join} from 'path';
+import {CreatePostDto} from "../dto/create-post.dto";
+import {UpdatePostDto} from "../dto/update-post.dto";
+import {GetPostsDto} from "../dto/get-posts.dto";
+import {CreateCommentDto} from "../dto/create-comment.dto";
+import {UpdateCommentDto} from "../dto/update-comment.dto";
 
 @Controller('posts')
 export class PostController {
-    constructor(private readonly postService: PostService) {}
+    constructor(
+        private readonly postService: PostService,
+        private readonly s3Service: S3Service
+
+    ) {}
 
     //POST-001 (게시물 조회)
     @Get()
-    async getPosts(
-        @Query('keyword') keyword?: string,
-        @Query('searchType') searchType: string = 'title+content',
-        @Query('page') page=1,
-        @Query('limit') limit=20,
-        @Query('sortField') sortField: 'createdAt' | 'likenum' | 'commentnum' = 'createdAt',
-        @Query('sortBy') sortBy: 'asc' | 'desc'='desc',
-    ): Promise<any[]> {
+    async getPosts(@Query() query: GetPostsDto): Promise<any[]> {
+        const { keyword, searchType, page, limit, sortField, sortBy } = query;
+
+        // Where 조건 생성
         const where: Prisma.PostWhereInput = {};
 
         if (keyword) {
@@ -50,14 +56,9 @@ export class PostController {
             }
         }
 
-        const posts = await this.postService.getPosts(
-            page,
-            limit,
-            sortField,
-            sortBy,
-            where,
-        );
-        return posts.map(post => ({
+        const posts = await this.postService.getPosts(page, limit, sortField, sortBy, where);
+
+        return posts.map((post) => ({
             id: post.id,
             title: post.title,
             author: post.author.nickname,
@@ -70,25 +71,18 @@ export class PostController {
     //POST-002 (게시물 작성)
     @UseGuards(JwtAuthGuard)
     @Post()
-    @UseInterceptors(FilesInterceptor('files', 5, {
-        storage: diskStorage({
-            destination: join(__dirname, '../../../postImages'),
-            filename: (req, file, callback) => {
-                const suffix=Date.now()+'-'+req.user.email;
-                const filename= `${suffix}-${file.originalname}`
-                callback(null, filename)
-            }
-        }),
-    }))
+    @UseInterceptors(FilesInterceptor('files', 5))
     async createPOST(
         @UploadedFiles() files: Express.Multer.File[],
-        @Body() postData: { title: string; content: string; },
+        @Body() postData: CreatePostDto,
         @Req() req: Request,
     ): Promise<PostModel> {
         const { title, content } = postData;
         const userId = req.user.userId
 
-        const filePaths = files ? files.map(file => join(__dirname, `../../postImages/${file.filename}`)) : [];
+        const filePaths = files
+            ? await Promise.all(files.map(file => this.s3Service.uploadFile(file)))
+            : [];
 
         return this.postService.createPost(
             { title, content, userId},
@@ -105,31 +99,24 @@ export class PostController {
     //POST-004 (특정 게시물 수정)
     @UseGuards(JwtAuthGuard)
     @Put('/:id')
-    @UseInterceptors(FilesInterceptor('files', 5, {
-        storage: diskStorage({
-            destination: join(__dirname, '../../../postImages'),
-            filename: (req, file, callback) => {
-                const suffix = Date.now() + '-' + (req.user as any).email;
-                const filename = `${suffix}-${file.originalname}`;
-                callback(null, filename);
-            }
-        }),
-    }))
+    @UseInterceptors(FilesInterceptor('files', 5))
     async updatePost(
         @Param('id') id: string,
         @UploadedFiles() files: Express.Multer.File[],
-        @Body() postData: { title?: string; content?: string },
+        @Body() postData: UpdatePostDto,
         @Req() req: Request,
-    ): Promise<PostModel> {
-        const userId = (req.user as any).userId;
+    ) {
+        const userId = req.user.userId;
 
-        // 새로운 파일 경로 설정 (새로운 이미지가 있을 경우)
-        const filePaths = files ? files.map(file => `../../postImages/${file.filename}`) : [];
+        const newFilePaths = files
+            ? await Promise.all(files.map(file => this.s3Service.uploadFile(file)))
+            : [];
 
         return this.postService.updatePost(
             userId,
-            { id: Number(id), title: postData.title, content: postData.content },
-            filePaths
+            Number(id),
+            { title: postData.title, content: postData.content },
+            newFilePaths,
         );
     }
 
@@ -178,7 +165,7 @@ export class PostController {
     @Post('/:postId/comments')
     async createComment(
         @Param('postId') postId: string,
-        @Body() commentData: { content: string; parentId?: number },
+        @Body() commentData: CreateCommentDto,
         @Req() req: Request
     ) {
         const authorId = req.user.userId;
@@ -193,7 +180,7 @@ export class PostController {
     @Put('/comments/:commentId')
     async updateComment(
         @Param('commentId') commentId: string,
-        @Body() commentData: { content : string },
+        @Body() commentData: UpdateCommentDto,
         @Req() req: Request
     ) {
         const userId= req.user.userId;

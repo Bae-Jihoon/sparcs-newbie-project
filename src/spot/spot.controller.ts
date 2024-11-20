@@ -14,7 +14,12 @@ import {
 import {SpotService} from "./spot.service";
 import {JwtAuthGuard} from "../auth/jwt-auth.guard";
 import {Request} from "express";
-import {SpotCommentDto} from "../dto/spot-comment.dto";
+import {CreateSpotcommentDto} from "../dto/create-spotcomment.dto";
+import {CreateSpotDto} from "../dto/create-spot.dto";
+import {CoordsQueryDto} from "../dto/coords-query.dto";
+import {GetSpotsDto} from "../dto/get-spots.dto";
+import {UpdateSpotDto} from "../dto/update-spot.dto";
+import {UpdateSpotcommentDto} from "../dto/update-spotcomment.dto";
 
 @Controller('spots')
 export class SpotController {
@@ -25,11 +30,13 @@ export class SpotController {
     @Post()
     async createSpot(
         @Req() req: Request,
-        @Body() spotData: { name: string, description: string },
-        @Query('coords') coords: string,
+        @Body() spotData: CreateSpotDto,
+        @Query('coords') coordsQuery: CoordsQueryDto,
     ) {
         const userId = req.user.userId;
-        const [longitude, latitude] = coords.split(',').map((value) => parseFloat(value));
+        const [longitude, latitude] = coordsQuery.coords
+            .split(',')
+            .map((value) => parseFloat(value));
 
         return this.spotService.createSpot(
             userId,
@@ -42,10 +49,10 @@ export class SpotController {
     //SPOT-002 (모든 흡연스팟 조회)
     @Get()
     async getSpots(
-        @Query('region')region?: string,
-        @Query('searchType') searchType : string = 'address'
+        @Query() query: GetSpotsDto
     ) {
-        return this.spotService.getSpots(searchType, region)
+        const { region, searchType} = query;
+        return this.spotService.getSpots(searchType, region);
     }
 
     //SPOT-003 (특정 흡연스팟 조회)
@@ -62,16 +69,13 @@ export class SpotController {
     async updateSpot(
         @Param('spotId') spotId: string,
         @Req() req: Request,
-        @Body() spotData: { name?: string, description?: string },
-        @Query('coords') coords?: string,
+        @Body() spotData: UpdateSpotDto,
     ) {
         const userId = req.user.userId;
-        console.log(spotData);
         return this.spotService.updateSpot(
             userId,
             +spotId,
             spotData,
-            coords
         )
     }
 
@@ -92,10 +96,10 @@ export class SpotController {
     async createSpotComment(
         @Req() req: Request,
         @Param('spotId') spotId: string,
-        @Body() spotCommentDto: SpotCommentDto
+        @Body() spotCommentData: CreateSpotcommentDto
     ) {
         const userId=req.user.userId;
-        const {content, rate} = spotCommentDto;
+        const {content, rate} = spotCommentData;
         return this.spotService.createSpotComment(
             userId,
             +spotId,
@@ -130,13 +134,13 @@ export class SpotController {
     async updateSpotComment(
         @Req() req: Request,
         @Param('spotcommentId') spotcommentId: string,
-        @Body() spotCommentDto: SpotCommentDto
+        @Body() spotCommentData: UpdateSpotcommentDto
     ) {
         const userId=req.user.userId;
         return this.spotService.updateSpotComment(
             userId,
             +spotcommentId,
-            spotCommentDto
+            spotCommentData
         )
     }
 }

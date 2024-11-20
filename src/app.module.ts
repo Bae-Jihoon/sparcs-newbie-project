@@ -13,6 +13,7 @@ import { PostModule } from './post/post.module';
 import { JwtStrategy } from "./auth/jwt.strategy";
 import { SpotModule } from './spot/spot.module';
 import * as cookieParser from 'cookie-parser';
+import { S3Service } from "./s3/s3.service";
 
 @Module({
   imports: [
@@ -26,7 +27,16 @@ import * as cookieParser from 'cookie-parser';
     SpotModule
   ],
   controllers: [AppController],
-  providers: [AppService, UserService, PostService, SpotService, ReverseGeocodingService, PrismaService, JwtStrategy],
+  providers: [
+    AppService,
+    UserService,
+    PostService,
+    SpotService,
+    ReverseGeocodingService,
+    PrismaService,
+    JwtStrategy,
+    S3Service
+  ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {

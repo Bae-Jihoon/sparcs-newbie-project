@@ -8,26 +8,30 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Post, Prisma } from '@prisma/client';
+import { S3Service } from "../s3/s3.service";
 
 @Injectable()
 export class PostService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+      private prisma: PrismaService,
+      private s3Service: S3Service
+  ) {}
 
   //POST-001
   async getPosts(
       page: number,
       limit: number,
-      sortField: string,
-      sortBy: string,
+      sortField: 'createdAt' | 'likenum' | 'commentnum',
+      sortBy: 'asc' | 'desc',
       where?: Prisma.PostWhereInput,
   ): Promise<any[]> {
     return this.prisma.post.findMany({
-      skip: (page-1)*limit,
+      skip: (page - 1) * limit,
       take: limit,
       where,
-      orderBy: { [sortField]: sortBy},
+      orderBy: { [sortField]: sortBy },
       select: {
-        id : true,
+        id: true,
         title: true,
         author: {
           select: {
@@ -37,7 +41,7 @@ export class PostService {
         createdAt: true,
         commentnum: true,
         likenum: true,
-      }
+      },
     });
   }
 
@@ -46,28 +50,16 @@ export class PostService {
       postData: { title: string, content: string, userId: number },
       filePaths: string[],
   ): Promise<Post> {
-    const newPost = await this.prisma.post.create({
+    return this.prisma.post.create({
       data: {
         title: postData.title,
         content: postData.content,
-        author: {
-          connect: {id: postData.userId,},
-        }
-      }
+        authorId: postData.userId,
+        imagePaths: {
+          create: filePaths.map(path => ({ path: path })),
+        },
+      },
     });
-    if (filePaths.length > 0) {
-      const imagePaths = filePaths.map(path => ({
-        path: path,
-        postId: newPost.id
-      }));
-
-      await this.prisma.image.createMany({
-        data: imagePaths,
-      });
-    }
-
-
-    return newPost;
   }
 
   //POST-003
@@ -82,7 +74,12 @@ export class PostService {
             nickname: true,
             startedAt: true,
           }
-        }
+        },
+        imagePaths: {
+          select: {
+            path: true,
+          },
+        },
       }
     });
   }
@@ -90,48 +87,55 @@ export class PostService {
   //POST-004
   async updatePost(
       userId: number,
-      postData: { id: number; title?: string; content?: string; },
-      filePaths: string[],
-  ): Promise<Post> {
+      postId: number,
+      postData: { title?: string; content?: string },
+      newFilePaths: string[],
+  ) {
     const post = await this.prisma.post.findUnique({
-      where: { id: postData.id },
-      select: { authorId: true }, // 작성자 ID만 조회
+      where: { id: postId },
+      include: { imagePaths: true },
     });
 
     if (!post) {
-      throw new NotFoundException('Post not found');
+      throw new ForbiddenException('Post not found.');
     }
 
     if (post.authorId !== userId) {
       throw new ForbiddenException('You can only update your own posts.');
     }
-    console.log(postData);
-    const updatedPost = await this.prisma.post.update({
-      where: { id: postData.id },
+
+    const existingImagePaths = post.imagePaths.map(image => image.path);
+
+    await Promise.all(
+        existingImagePaths.map(async path => {
+          await this.s3Service.deleteFile(path); // S3 이미지 삭제
+        }),
+    );
+
+    await this.prisma.image.deleteMany({
+      where: { postId },
+    });
+
+    return this.prisma.post.update({
+      where: { id: postId },
       data: {
         title: postData.title,
         content: postData.content,
+        imagePaths: {
+          create: newFilePaths.map(path => ({ path })), // 새 이미지 추가
+        },
       },
     });
-
-    if (filePaths.length > 0) {
-      const imagePaths = filePaths.map(path => ({
-        path: path,
-        postId: updatedPost.id,
-      }));
-
-      await this.prisma.image.createMany({
-        data: imagePaths,
-      });
-    }
-    return updatedPost;
   }
 
   //POST-005
   async deletePost(postId: number, userId: number): Promise<Post> {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
-      select: { authorId: true },
+      select: {
+        authorId: true,
+        imagePaths: true
+      },
     });
 
     if (post.authorId !== userId) {
@@ -139,6 +143,14 @@ export class PostService {
     }
     if (!post) {
       throw new NotFoundException(('Post not found'))
+    }
+
+    if (post.imagePaths.length > 0) {
+      await Promise.all(
+          post.imagePaths.map(async (image) => {
+            await this.s3Service.deleteFile(image.path);
+          }),
+      );
     }
 
     return this.prisma.post.delete({

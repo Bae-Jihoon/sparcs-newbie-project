@@ -84,7 +84,6 @@ export class SpotService {
         userId: number,
         spotId: number,
         spotData: { name?: string; description?: string },
-        coords?: string
     ) {
         const spot = await this.prisma.spot.findUnique({
             where: { id: spotId },
@@ -94,22 +93,11 @@ export class SpotService {
             throw new ForbiddenException('You can only update your own spots.');
         }
 
-        const [longitude, latitude] = coords
-            ? coords.split(',').map((value) => parseFloat(value))
-            : [undefined, undefined];
-
-        const roadAddress= coords
-            ? await this.rev_geocodingService.getAddress(latitude, longitude)
-            : undefined
-
         return this.prisma.spot.update({
             where: { id: spotId },
             data: {
                 name: spotData.name,
                 description: spotData.description,
-                latitude: latitude,
-                longitude: longitude,
-                roadAddress: roadAddress,
             }
         })
     }
