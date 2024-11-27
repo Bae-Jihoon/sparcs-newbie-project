@@ -5,8 +5,8 @@ import {
     Injectable,
     NotFoundException
 } from '@nestjs/common';
-import {PrismaService} from "../../prisma/prisma.service";
-import {ReverseGeocodingService} from "../geocode/reverse-geocoding.service";
+import {PrismaService} from "../../../prisma/prisma.service";
+import {ReverseGeocodingService} from "../../services/reverse-geocoding.service";
 
 @Injectable()
 export class SpotService {
@@ -37,7 +37,23 @@ export class SpotService {
                 latitude: latitude,
                 longitude: longitude,
                 roadAddress: roadAddress,
-                sharelink: `http://localhost:3000/spots/${Math.random().toString(36).substring(2, 10)}`
+                sharelink: `http://heuppot/spots/${Math.random().toString(36).substring(2, 10)}`
+            },
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                roadAddress: true,
+                createdAt: true,
+                avgRate: true,
+                sharelink: true,
+                commentnum: true,
+                author: {
+                    select: {
+                        nickname: true,
+                        startedAt: true,
+                    }
+                }
             }
         })
     }
@@ -50,17 +66,32 @@ export class SpotService {
         if (keyword) {
             if (searchType=='address') {
                 return this.prisma.spot.findMany({
-                    where: { roadAddress: { contains: keyword}}
+                    where: { roadAddress: { contains: keyword}},
+                    select: {
+                        id: true,
+                        latitude: true,
+                        longitude: true,
+                    }
                 });
             }
             else if (searchType=='name') {
                 return this.prisma.spot.findMany({
-                    where: { name: { contains: keyword}}
+                    where: { name: { contains: keyword}},
+                    select: {
+                        id: true,
+                        latitude: true,
+                        longitude: true,
+                    }
                 });
             }
             else if (searchType=='description') {
                 return this.prisma.spot.findMany({
-                    where: { description: { contains: keyword}}
+                    where: { description: { contains: keyword}},
+                    select: {
+                        id: true,
+                        latitude: true,
+                        longitude: true,
+                    }
                 });
             }
             else {
@@ -68,14 +99,36 @@ export class SpotService {
             }
         }
         else {
-            return this.prisma.spot.findMany();
+            return this.prisma.spot.findMany({
+                select: {
+                id: true,
+                    latitude: true,
+                    longitude: true,
+            }
+            });
         }
     }
 
     //SPOT-003
     async getSpot(spotId: number) {
         return this.prisma.spot.findUnique({
-            where: { id: spotId}
+            where: { id: spotId},
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                roadAddress: true,
+                createdAt: true,
+                avgRate: true,
+                sharelink: true,
+                commentnum: true,
+                author: {
+                    select: {
+                        nickname: true,
+                        startedAt: true
+                    }
+                }
+            }
         })
     }
 
@@ -98,6 +151,22 @@ export class SpotService {
             data: {
                 name: spotData.name,
                 description: spotData.description,
+            },
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                roadAddress: true,
+                createdAt: true,
+                avgRate: true,
+                sharelink: true,
+                commentnum: true,
+                author: {
+                    select: {
+                        nickname: true,
+                        startedAt: true
+                    }
+                }
             }
         })
     }
@@ -138,7 +207,7 @@ export class SpotService {
                 throw new ConflictException('One user can post at most one comment per spot.');
             }
 
-            await tx.spotComment.create({
+            const spotcomment= await tx.spotComment.create({
                 data: {
                     spot: {
                         connect: {id: spotId}
@@ -148,6 +217,14 @@ export class SpotService {
                     },
                     content: content,
                     rate: rate
+                },
+                include: {
+                    author: {
+                        select: {
+                            nickname: true,
+                            startedAt: true
+                        }
+                    }
                 }
             });
             const spot = await this.prisma.spot.findUnique({
@@ -159,20 +236,44 @@ export class SpotService {
             });
             const newCommentNum=spot.commentnum+1;
             const newAvgRate=(spot.commentnum*spot.avgRate+rate)/newCommentNum;
-            return tx.spot.update({
+            await tx.spot.update({
                 where: { id: spotId },
                 data: {
                     commentnum: newCommentNum,
                     avgRate: newAvgRate
                 }
-            })
+            });
+            return {
+                id: spotcomment.id,
+                content: spotcomment.content,
+                rate: spotcomment.rate,
+                createdAt: spotcomment.createdAt,
+                author: {
+                    nickname: spotcomment.author.nickname,
+                    startedAt: spotcomment.author.startedAt
+                },
+                spotId: spotcomment.spotId
+            }
         })
     }
 
     //SPOT-007
     async getSpotComments(spotId: number) {
         return this.prisma.spotComment.findMany({
-            where: { spotId: spotId }
+            where: { spotId: spotId },
+            select: {
+                id: true,
+                content: true,
+                rate: true,
+                createdAt: true,
+                author: {
+                    select: {
+                        nickname: true,
+                        startedAt: true
+                    }
+                },
+                spotId: true
+            }
         })
     }
 
@@ -244,11 +345,19 @@ export class SpotService {
                 }
             });
 
-            await tx.spotComment.update({
+            const updatedSpotcomment= await tx.spotComment.update({
                 where: { id: spotcommentId},
                 data: {
                     content: updateData.content,
                     rate: updateData.rate
+                },
+                include: {
+                    author: {
+                        select: {
+                            nickname: true,
+                            startedAt: true
+                        }
+                    }
                 }
             });
             const newAvgRate=((
@@ -260,9 +369,17 @@ export class SpotService {
                     avgRate: newAvgRate
                 }
             });
-            return tx.spotComment.findUnique({
-                where: { id: spotcommentId}
-            });
+            return {
+                id: updatedSpotcomment.id,
+                content: updatedSpotcomment.content,
+                rate: updatedSpotcomment.rate,
+                createdAt: updatedSpotcomment.createdAt,
+                author: {
+                    nickname: updatedSpotcomment.author.nickname,
+                    startedAt: updatedSpotcomment.author.startedAt
+                },
+                spotId: updatedSpotcomment.spotId
+            };
         })
     }
 }

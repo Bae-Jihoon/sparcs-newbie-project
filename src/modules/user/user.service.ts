@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { User, Prisma } from '@prisma/client';
 
 @Injectable()
@@ -9,9 +9,15 @@ export class UserService {
   //USER-001
   async getUser(
     userId: number,
-  ): Promise<User> {
+  ) {
     return this.prisma.user.findUnique({
       where: { id: userId},
+      select: {
+        email: true,
+        nickname: true,
+        startedAt: true,
+        createdAt: true,
+      }
     });
   }
 
@@ -19,7 +25,7 @@ export class UserService {
   async updateUser(
     userId: number,
     updateData: { email?: string; nickname?: string; password?: string; startedAt?: Date },
-  ): Promise<User> {
+  ) {
     return this.prisma.user.update({
       where: { id: userId},
       data: {
@@ -27,6 +33,12 @@ export class UserService {
         nickname: updateData.nickname,
         password: updateData.password,
         startedAt: new Date(updateData.startedAt),
+      },
+      select: {
+        email:true,
+        nickname: true,
+        startedAt: true,
+        createdAt: true
       }
     });
   }
@@ -38,8 +50,10 @@ export class UserService {
       select: {
         id: true,
         title: true,
-        content: true,
+        author: {select: {nickname: true}},
         createdAt: true,
+        likenum: true,
+        commentnum: true
       },
     });
   }
@@ -70,12 +84,16 @@ export class UserService {
         id: true,
         name: true,
         description: true,
-        latitude: true,
-        longitude: true,
         roadAddress: true,
         avgRate: true,
         sharelink: true,
         createdAt: true,
+        commentnum: true,
+        author: {
+          select: {
+            nickname: true,
+          }
+        }
       },
     });
   }

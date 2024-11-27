@@ -18,14 +18,16 @@ import {PostService} from "./post.service";
 import {JwtAuthGuard} from "../auth/jwt-auth.guard";
 import { Request } from "express";
 import {FilesInterceptor} from "@nestjs/platform-express";
-import { S3Service } from '../s3/s3.service';
+import { S3Service } from '../../services/s3.service';
 import {diskStorage} from "multer";
 import {join} from 'path';
-import {CreatePostDto} from "../dto/create-post.dto";
-import {UpdatePostDto} from "../dto/update-post.dto";
-import {GetPostsDto} from "../dto/get-posts.dto";
-import {CreateCommentDto} from "../dto/create-comment.dto";
-import {UpdateCommentDto} from "../dto/update-comment.dto";
+import {CreatePostDto} from "../../common/dto/create-post.dto";
+import {UpdatePostDto} from "../../common/dto/update-post.dto";
+import {GetPostsDto} from "../../common/dto/get-posts.dto";
+import {CreateCommentDto} from "../../common/dto/create-comment.dto";
+import {UpdateCommentDto} from "../../common/dto/update-comment.dto";
+import {UserData} from "../../common/types/user-data.interface";
+import {JWTUser} from "../../common/decorators/jwt-user.decorator";
 
 @Controller('posts')
 export class PostController {
@@ -75,10 +77,10 @@ export class PostController {
     async createPOST(
         @UploadedFiles() files: Express.Multer.File[],
         @Body() postData: CreatePostDto,
-        @Req() req: Request,
-    ): Promise<PostModel> {
+        @JWTUser() user: UserData,
+    ) {
         const { title, content } = postData;
-        const userId = req.user.userId
+        const userId = Number(user.userId)
 
         const filePaths = files
             ? await Promise.all(files.map(file => this.s3Service.uploadFile(file)))
@@ -92,7 +94,7 @@ export class PostController {
 
     //POST-003 (특정 게시물 조회)
     @Get('/:id')
-    async getPostById(@Param('id') id: string): Promise<PostModel> {
+    async getPostById(@Param('id') id: string) {
         return this.postService.getPost({ id: Number(id) });
     }
 
@@ -104,9 +106,9 @@ export class PostController {
         @Param('id') id: string,
         @UploadedFiles() files: Express.Multer.File[],
         @Body() postData: UpdatePostDto,
-        @Req() req: Request,
+        @JWTUser() user: UserData,
     ) {
-        const userId = req.user.userId;
+        const userId = Number(user.userId);
 
         const newFilePaths = files
             ? await Promise.all(files.map(file => this.s3Service.uploadFile(file)))
@@ -114,7 +116,7 @@ export class PostController {
 
         return this.postService.updatePost(
             userId,
-            Number(id),
+            +id,
             { title: postData.title, content: postData.content },
             newFilePaths,
         );
@@ -125,10 +127,10 @@ export class PostController {
     @Delete('/:id')
     async deletePost(
         @Param('id') id: string,
-        @Req() req: Request
+        @JWTUser() user: UserData
     ): Promise<PostModel> {
-        const userId = req.user.userId;
-        return this.postService.deletePost( Number(id), userId );
+        const userId = Number(user.userId);
+        return this.postService.deletePost( +id, userId );
     }
 
     //POST-006 (특정 게시물 '추천' 추가)
@@ -136,10 +138,10 @@ export class PostController {
     @Post('/:id/likes')
     async addLikePost(
         @Param('id') id: string,
-        @Req() req: Request
+        @JWTUser() user: UserData
     ) {
-        const userId = req.user.userId;
-        return this.postService.addLikePost(Number(id), userId);
+        const userId = Number(user.userId);
+        return this.postService.addLikePost(+id, userId);
     }
 
     //POST-007 (특정 게시물 '추천' 제거)
@@ -148,16 +150,16 @@ export class PostController {
     @HttpCode(204)
     async deleteLikePost(
         @Param('id') id: string,
-        @Req() req: Request
+        @JWTUser() user: UserData
     ) {
-        const userId = req.user.userId;
-        return this.postService.deleteLikePost(Number(id), userId);
+        const userId = Number(user.userId);
+        return this.postService.deleteLikePost(+id, userId);
     }
 
     //POST-008 (특정 게시물 댓글 목록 조회)
     @Get('/:postId/comments')
     async getComments(@Param('postId') postId: string) {
-        return this.postService.getComments(Number(postId));
+        return this.postService.getComments(+postId);
     }
 
     //POST-009 (특정 게시물 댓글 작성)
@@ -166,11 +168,11 @@ export class PostController {
     async createComment(
         @Param('postId') postId: string,
         @Body() commentData: CreateCommentDto,
-        @Req() req: Request
+        @JWTUser() user: UserData
     ) {
-        const authorId = req.user.userId;
+        const authorId = Number(user.userId);
         return this.postService.createComment(
-            Number(postId),
+            +postId,
             { authorId: authorId, content: commentData.content, parentId: commentData.parentId },
         );
     }
@@ -181,11 +183,11 @@ export class PostController {
     async updateComment(
         @Param('commentId') commentId: string,
         @Body() commentData: UpdateCommentDto,
-        @Req() req: Request
+        @JWTUser() user: UserData
     ) {
-        const userId= req.user.userId;
+        const userId= Number(user.userId);
         return this.postService.updateComment(
-            userId, Number(commentId), commentData.content
+            userId, +commentId, commentData.content
         )
     }
 
@@ -195,11 +197,11 @@ export class PostController {
     @HttpCode(204)
     async deleteComment(
         @Param('commentId') commentId: string,
-        @Req() req: Request
+        @JWTUser() user: UserData
     ) {
-        const userId= req.user.userId;
+        const userId= Number(user.userId);
         return this.postService.deleteComment(
-            userId, Number(commentId)
+            userId, +commentId
         )
     }
 
@@ -208,10 +210,10 @@ export class PostController {
     @Post('/comments/:commentId/likes')
     async addLikeComment(
         @Param('commentId') commentId: string,
-        @Req() req: Request
+        @JWTUser() user: UserData
     ) {
-        const userId = req.user.userId;
-        return this.postService.addLikeComment(Number(commentId), userId);
+        const userId = Number(user.userId);
+        return this.postService.addLikeComment(+commentId, userId);
     }
 
     //POST-014 (특정 댓글 '추천' 제거)
@@ -220,9 +222,9 @@ export class PostController {
     @HttpCode(204)
     async deleteLikeComment(
         @Param('commentId') commentId: string,
-        @Req() req: Request
+        @JWTUser() user: UserData
     ) {
-        const userId = req.user.userId;
-        return this.postService.deleteLikeComment(Number(commentId), userId);
+        const userId = Number(user.userId);
+        return this.postService.deleteLikeComment(+commentId, userId);
     }
 }

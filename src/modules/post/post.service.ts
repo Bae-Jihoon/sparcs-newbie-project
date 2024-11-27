@@ -6,9 +6,9 @@ import {
   Injectable,
   NotFoundException
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { Post, Prisma } from '@prisma/client';
-import { S3Service } from "../s3/s3.service";
+import { S3Service } from "../../services/s3.service";
 
 @Injectable()
 export class PostService {
@@ -21,8 +21,8 @@ export class PostService {
   async getPosts(
       page: number,
       limit: number,
-      sortField: 'createdAt' | 'likenum' | 'commentnum',
-      sortBy: 'asc' | 'desc',
+      sortField: string,
+      sortBy: string,
       where?: Prisma.PostWhereInput,
   ): Promise<any[]> {
     return this.prisma.post.findMany({
@@ -49,24 +49,50 @@ export class PostService {
   async createPost(
       postData: { title: string, content: string, userId: number },
       filePaths: string[],
-  ): Promise<Post> {
-    return this.prisma.post.create({
+  ) {
+    const createdPost = await this.prisma.post.create({
       data: {
         title: postData.title,
         content: postData.content,
         authorId: postData.userId,
         imagePaths: {
-          create: filePaths.map(path => ({ path: path })),
+          create: filePaths.map(path => ({ path })),
+        },
+      },
+      include: {
+        imagePaths: {
+          select: {
+            path: true,
+          },
+        },
+        author: {
+          select: {
+            nickname: true
+          }
         },
       },
     });
+
+    return {
+      id: createdPost.id,
+      title: createdPost.title,
+      content: createdPost.content,
+      createdAt: createdPost.createdAt,
+      updatedAt: createdPost.updatedAt,
+      author: {
+        nickname: createdPost.author.nickname
+      },
+      likenum: createdPost.likenum,
+      commentnum: createdPost.commentnum,
+      imagePaths: createdPost.imagePaths.map(image => image.path), // imagePaths만 추출
+    };
   }
 
   //POST-003
   async getPost(
       postId: Prisma.PostWhereUniqueInput,
-  ): Promise<Post> {
-    return this.prisma.post.findUnique({
+  ) {
+    const post= await this.prisma.post.findUnique({
       where: postId,
       include: {
         author: {
@@ -82,6 +108,21 @@ export class PostService {
         },
       }
     });
+    return {
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      author: {
+        nickname: post.author.nickname,
+        startedAt: post.author.startedAt,
+      },
+      likenum: post.likenum,
+      commentnum: post.commentnum,
+      imagePaths: post.imagePaths.map(image => image.path),
+    };
+
   }
 
   //POST-004
@@ -97,7 +138,7 @@ export class PostService {
     });
 
     if (!post) {
-      throw new ForbiddenException('Post not found.');
+      throw new NotFoundException('Post not found.');
     }
 
     if (post.authorId !== userId) {
@@ -116,7 +157,7 @@ export class PostService {
       where: { postId },
     });
 
-    return this.prisma.post.update({
+    const updatedPost = await this.prisma.post.update({
       where: { id: postId },
       data: {
         title: postData.title,
@@ -125,7 +166,34 @@ export class PostService {
           create: newFilePaths.map(path => ({ path })), // 새 이미지 추가
         },
       },
+      include: {
+        author: {
+          select: {
+            nickname: true,
+            startedAt: true,
+          }
+        },
+        imagePaths: {
+          select: {
+            path: true,
+          },
+        },
+      }
     });
+    return {
+      id: updatedPost.id,
+      title: updatedPost.title,
+      content: updatedPost.content,
+      createdAt: updatedPost.createdAt,
+      updatedAt: updatedPost.updatedAt,
+      author: {
+        nickname: updatedPost.author.nickname,
+        startedAt: updatedPost.author.startedAt,
+      },
+      likenum: updatedPost.likenum,
+      commentnum: updatedPost.commentnum,
+      imagePaths: updatedPost.imagePaths.map(image => image.path), // 이미지 경로 추출
+    }
   }
 
   //POST-005
@@ -171,10 +239,13 @@ export class PostService {
       }
 
       await tx.like.create({ data: {postId: postId, userId: userId}});
-      return tx.post.update({
+      const updatedPost = await tx.post.update({
         where: { id: postId },
-        data: { likenum: {increment: 1} }
-      })
+        data: { likenum: { increment: 1 } },
+        select: { id: true, likenum: true }, // 업데이트된 게시물의 좋아요 수만 반환
+      });
+
+      return updatedPost;
     })
   }
 
@@ -193,10 +264,13 @@ export class PostService {
       await tx.like.delete({ where: {
           userId_postId: {postId: postId, userId: userId}
         }});
-      await tx.post.update({
+      const updatedPost = await tx.post.update({
         where: { id: postId },
-        data: { likenum: {decrement: 1} }
-      })
+        data: { likenum: { decrement: 1 } },
+        select: { id: true, likenum: true },
+      });
+
+      return updatedPost;
     })
   }
 
@@ -227,7 +301,7 @@ export class PostService {
       commentData: {authorId: number, content: string, parentId?: number}
   ) {
     return this.prisma.$transaction(async (tx) => {
-      await tx.comment.create({
+      const comment= await tx.comment.create({
         data: {
           post: {
             connect: { id: postId }
@@ -239,12 +313,31 @@ export class PostService {
           parent: commentData.parentId
               ? { connect: { id: commentData.parentId } } // 부모 댓글 연결
               : undefined
+        },
+        include: {
+          author: {
+            select: {
+              nickname: true,
+              startedAt: true,
+            }
+          }
         }
       })
       await tx.post.update({
         where: { id: postId },
         data: { commentnum: {increment: 1} }
       })
+      return {
+        id: comment.id,
+        author: {
+          nickname: comment.author.nickname,
+          startedAt: comment.author.startedAt
+        },
+        content: comment.content,
+        likenum: comment.likenum,
+        createdAt: comment.createdAt,
+        parentId: comment.parentId
+      }
     })
   }
 
@@ -256,7 +349,14 @@ export class PostService {
   ) {
     const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },
-      select: { authorId: true }, // 작성자 ID만 조회
+      include: {
+        author: {
+          select: {
+            nickname: true,
+            startedAt: true,
+          }
+        }
+      }
     });
 
     if (!comment) {
@@ -266,10 +366,21 @@ export class PostService {
       throw new ForbiddenException('You can only update your own comments.');
     }
 
-    return this.prisma.comment.update({
+    await this.prisma.comment.update({
       where: { id: commentId },
       data: { content : content }
     });
+    return {
+      id: comment.id,
+      author: {
+        nickname: comment.author.nickname,
+        startedAt: comment.author.startedAt
+      },
+      content: comment.content,
+      likenum: comment.likenum,
+      createdAt: comment.createdAt,
+      parentId: comment.parentId
+    }
   }
 
   //POST-012
@@ -322,10 +433,14 @@ export class PostService {
       }
 
       await tx.commentLike.create({ data: {commentId: commentId, userId: userId}});
-      return tx.comment.update({
+
+      const updatedComment = await tx.comment.update({
         where: { id: commentId },
-        data: { likenum: {increment: 1} }
-      })
+        data: { likenum: { increment: 1 } },
+        select: { id: true, likenum: true },
+      });
+
+      return updatedComment;
     })
   }
 
@@ -343,11 +458,15 @@ export class PostService {
 
       await tx.commentLike.delete({ where: {
           userId_commentId: {commentId: commentId, userId: userId}
-        }});
-      await tx.comment.update({
+      }});
+
+      const updatedComment = await tx.comment.update({
         where: { id: commentId },
-        data: { likenum: {decrement: 1} }
-      })
+        data: { likenum: { increment: 1 } },
+        select: { id: true, likenum: true },
+      });
+
+      return updatedComment;
     })
   }
 }

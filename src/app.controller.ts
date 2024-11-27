@@ -11,8 +11,8 @@ import {
 import { Response } from 'express';
 import { join } from 'path';
 import { AppService } from './app.service';
-import { UserService } from './user/user.service';
-import { PostService } from './post/post.service';
+import { UserService } from './modules/user/user.service';
+import { PostService } from './modules/post/post.service';
 import { User as UserModel, Post as PostModel } from '@prisma/client';
 
 @Controller()

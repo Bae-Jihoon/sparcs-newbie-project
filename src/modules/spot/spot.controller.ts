@@ -14,12 +14,14 @@ import {
 import {SpotService} from "./spot.service";
 import {JwtAuthGuard} from "../auth/jwt-auth.guard";
 import {Request} from "express";
-import {CreateSpotcommentDto} from "../dto/create-spotcomment.dto";
-import {CreateSpotDto} from "../dto/create-spot.dto";
-import {CoordsQueryDto} from "../dto/coords-query.dto";
-import {GetSpotsDto} from "../dto/get-spots.dto";
-import {UpdateSpotDto} from "../dto/update-spot.dto";
-import {UpdateSpotcommentDto} from "../dto/update-spotcomment.dto";
+import {CreateSpotcommentDto} from "../../common/dto/create-spotcomment.dto";
+import {CreateSpotDto} from "../../common/dto/create-spot.dto";
+import {CoordsQueryDto} from "../../common/dto/coords-query.dto";
+import {GetSpotsDto} from "../../common/dto/get-spots.dto";
+import {UpdateSpotDto} from "../../common/dto/update-spot.dto";
+import {UpdateSpotcommentDto} from "../../common/dto/update-spotcomment.dto";
+import {JWTUser} from "../../common/decorators/jwt-user.decorator";
+import {UserData} from "../../common/types/user-data.interface";
 
 @Controller('spots')
 export class SpotController {
@@ -29,11 +31,11 @@ export class SpotController {
     @UseGuards(JwtAuthGuard)
     @Post()
     async createSpot(
-        @Req() req: Request,
+        @JWTUser() user: UserData,
         @Body() spotData: CreateSpotDto,
         @Query('coords') coordsQuery: CoordsQueryDto,
     ) {
-        const userId = req.user.userId;
+        const userId = Number(user.userId);
         const [longitude, latitude] = coordsQuery.coords
             .split(',')
             .map((value) => parseFloat(value));
@@ -68,10 +70,10 @@ export class SpotController {
     @Put('/:spotId')
     async updateSpot(
         @Param('spotId') spotId: string,
-        @Req() req: Request,
+        @JWTUser() user: UserData,
         @Body() spotData: UpdateSpotDto,
     ) {
-        const userId = req.user.userId;
+        const userId = Number(user.userId);
         return this.spotService.updateSpot(
             userId,
             +spotId,
@@ -83,10 +85,10 @@ export class SpotController {
     @UseGuards(JwtAuthGuard)
     @Delete('/:spotId')
     async deleteSpot(
-        @Req() req: Request,
+        @JWTUser() user: UserData,
         @Param('spotId') spotId: string,
     ) {
-        const userId=req.user.userId;
+        const userId=Number(user.userId);
         return this.spotService.deleteSpot(+spotId, userId);
     }
 
@@ -94,11 +96,11 @@ export class SpotController {
     @UseGuards(JwtAuthGuard)
     @Post('/:spotId/spotcomments')
     async createSpotComment(
-        @Req() req: Request,
+        @JWTUser() user: UserData,
         @Param('spotId') spotId: string,
         @Body() spotCommentData: CreateSpotcommentDto
     ) {
-        const userId=req.user.userId;
+        const userId=Number(user.userId);
         const {content, rate} = spotCommentData;
         return this.spotService.createSpotComment(
             userId,
@@ -121,10 +123,10 @@ export class SpotController {
     @Delete('/spotcomments/:spotcommentId')
     @HttpCode(204)
     async deleteSpotComment(
-        @Req() req: Request,
+        @JWTUser() user: UserData,
         @Param('spotcommentId') spotcommentId: string,
     ) {
-        const userId=req.user.userId;
+        const userId=Number(user.userId);
         return this.spotService.deleteSpotComment(userId, +spotcommentId);
     }
 
@@ -132,11 +134,11 @@ export class SpotController {
     @UseGuards(JwtAuthGuard)
     @Put('/spotcomments/:spotcommentId')
     async updateSpotComment(
-        @Req() req: Request,
+        @JWTUser() user: UserData,
         @Param('spotcommentId') spotcommentId: string,
         @Body() spotCommentData: UpdateSpotcommentDto
     ) {
-        const userId=req.user.userId;
+        const userId=Number(user.userId);
         return this.spotService.updateSpotComment(
             userId,
             +spotcommentId,
