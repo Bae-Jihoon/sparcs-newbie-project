@@ -26,7 +26,8 @@ export class AuthController {
     response.cookie('access_token', access_token, {
       httpOnly: false,
       secure: false,
-      sameSite: 'none',     //나중에 수정
+      sameSite: 'lax',
+      path: '/'//나중에 수정
     });
 
     return { message: 'Login successful' };
@@ -38,7 +39,8 @@ export class AuthController {
     res.clearCookie('access_token', {
       httpOnly: false,
       secure: false,
-      sameSite: 'none',     //나중에 수정
+      sameSite: 'lax',
+      path: '/' //나중에 수정
     });
 
     return res.status(200).json({ message: 'Logout successful' });

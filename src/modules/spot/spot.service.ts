@@ -307,7 +307,7 @@ export class SpotService {
                 },
             });
             const newCommentNum=spot.commentnum-1;
-            const newAvgRate=(spot.commentnum*spot.avgRate-spotcomment.rate)/newCommentNum;
+            const newAvgRate= (newCommentNum===0) ? 0 : (spot.commentnum*spot.avgRate-spotcomment.rate)/newCommentNum;
             await tx.spot.update({
                 where: { id: spotcomment.spotId },
                 data: {

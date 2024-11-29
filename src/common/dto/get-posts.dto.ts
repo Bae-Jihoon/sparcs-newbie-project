@@ -18,11 +18,15 @@ export class GetPostsDto {
     page?: number = 1;
 
     @IsOptional()
-    @Transform(({ value }) => parseInt(value, 10))
+    @Transform(({ value }) => {
+        const parsed = parseInt(value, 10);
+        return isNaN(parsed) ? 20 : parsed; // 기본값 20 적용
+    })
     @IsInt()
     @Min(1)
     @Max(100)
     limit?: number = 20;
+
 
     @IsOptional()
     @IsIn(['createdAt', 'likenum', 'commentnum'])

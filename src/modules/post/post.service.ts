@@ -19,15 +19,16 @@ export class PostService {
 
   //POST-001
   async getPosts(
-      page: number,
-      limit: number,
+      page: number=1,
+      limit: number | string = 20,
       sortField: string,
       sortBy: string,
       where?: Prisma.PostWhereInput,
   ): Promise<any[]> {
+    const take = typeof limit === 'string' ? parseInt(limit, 10) : limit;
     return this.prisma.post.findMany({
-      skip: (page - 1) * limit,
-      take: limit,
+      skip: (page - 1) * take,
+      take: take,
       where,
       orderBy: { [sortField]: sortBy },
       select: {
@@ -149,6 +150,7 @@ export class PostService {
 
     await Promise.all(
         existingImagePaths.map(async path => {
+          if (!path) throw new Error("Image path is missing");
           await this.s3Service.deleteFile(path); // S3 이미지 삭제
         }),
     );
@@ -462,7 +464,7 @@ export class PostService {
 
       const updatedComment = await tx.comment.update({
         where: { id: commentId },
-        data: { likenum: { increment: 1 } },
+        data: { likenum: { decrement: 1 } },
         select: { id: true, likenum: true },
       });
 

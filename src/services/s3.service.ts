@@ -37,9 +37,24 @@ export class S3Service {
     }
 
     async deleteFile(filePath: string) {
-        const bucketName = process.env.AWS_S3_BUCKET_NAME;
+        const bucketName = this.bucketName; // 이미 클래스 멤버로 정의된 bucketName 사용
+        const region = this.configService.get<string>('AWS_REGION'); // AWS_REGION 가져오기
 
-        const key = filePath.split(`${bucketName}/`)[1]; // S3에서 파일 Key 추출
+        // 예상되는 S3 URL 형식으로부터 Key 추출
+        const prefix = `https://${bucketName}.s3.${region}.amazonaws.com/`;
+        if (!filePath.startsWith(prefix)) {
+            throw new Error(`Invalid file path: ${filePath}`);
+        }
+
+        // Key 값만 추출
+        const key = filePath.replace(prefix, '');
+
+        if (!key) {
+            throw new Error('Failed to extract S3 key from file path.');
+        }
+
+        // S3 파일 삭제
         await this.s3.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
     }
+
 }

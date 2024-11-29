@@ -33,9 +33,11 @@ export class SpotController {
     async createSpot(
         @JWTUser() user: UserData,
         @Body() spotData: CreateSpotDto,
-        @Query('coords') coordsQuery: CoordsQueryDto,
+        @Query() coordsQuery: CoordsQueryDto,
     ) {
+        //console.log('Received coords:', coordsQuery.coords);
         const userId = Number(user.userId);
+
         const [longitude, latitude] = coordsQuery.coords
             .split(',')
             .map((value) => parseFloat(value));
