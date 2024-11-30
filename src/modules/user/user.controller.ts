@@ -3,7 +3,9 @@ import {UserService} from "./user.service";
 import {JwtAuthGuard} from "../auth/jwt-auth.guard";
 import {JWTUser} from "../../common/decorators/jwt-user.decorator";
 import {UserData} from "../../common/types/user-data.interface";
+import {ApiCookieAuth, ApiOperation, ApiTags} from '@nestjs/swagger';
 
+@ApiTags('User')
 @Controller('users')
 export class UserController {
     constructor(private readonly userService: UserService) {}
@@ -11,6 +13,8 @@ export class UserController {
     //USER-001 (특정 사용자 정보 조회)
     @UseGuards(JwtAuthGuard)
     @Get()
+    @ApiCookieAuth()
+    @ApiOperation({ summary: 'Get user' })
     async getUser(
         @JWTUser() user: UserData
     ) {
@@ -21,6 +25,8 @@ export class UserController {
     //USER-002 (특정 사용자 정보 수정)
     @UseGuards(JwtAuthGuard)
     @Put()
+    @ApiCookieAuth()
+    @ApiOperation({ summary: 'Update user' })
     async updateUser(
         @JWTUser() user: UserData,
         @Body() userData: { email?: string; nickname?: string, password?: string, startedAt?: Date }
@@ -31,6 +37,8 @@ export class UserController {
 
     //USER-003 (특정 사용자가 게시한 글 목록 조회)
     @Get(':userId?/posts')
+    @ApiCookieAuth()
+    @ApiOperation({ summary: 'Get posts of user' })
     @UseGuards(JwtAuthGuard)
     async getPostsOfUser(
         @Param('userId') userId: string | undefined,
@@ -46,6 +54,8 @@ export class UserController {
     //USER-004 (특정 사용자가 작성한 댓글 목록 조회)
     @UseGuards(JwtAuthGuard)
     @Get('/comments')
+    @ApiCookieAuth()
+    @ApiOperation({ summary: 'Get comments of user' })
     async getCommentsOfUser(
         @JWTUser() user: UserData
     ) {
@@ -56,6 +66,8 @@ export class UserController {
     //USER-005 (특정 사용자가 등록한 흡연 스팟 목록 조회)
     @Get(':userId?/spots')
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
+    @ApiOperation({ summary: 'Get spots of user' })
     async getSpotsOfUser(
         @Param('userId') userId: string | undefined,
         @JWTUser() user: UserData
@@ -69,6 +81,8 @@ export class UserController {
     //USER-006
     @UseGuards(JwtAuthGuard)
     @Get('/spotcomments')
+    @ApiCookieAuth()
+    @ApiOperation({ summary: 'Get spotcomments of user' })
     async getSpotCommentsOfUser(
         @JWTUser() user: UserData
     ) {

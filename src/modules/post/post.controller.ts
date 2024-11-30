@@ -16,11 +16,8 @@ import {
 import {Post as PostModel, Prisma} from ".prisma/client";
 import {PostService} from "./post.service";
 import {JwtAuthGuard} from "../auth/jwt-auth.guard";
-import { Request } from "express";
 import {FilesInterceptor} from "@nestjs/platform-express";
 import { S3Service } from '../../services/s3.service';
-import {diskStorage} from "multer";
-import {join} from 'path';
 import {CreatePostDto} from "../../common/dto/create-post.dto";
 import {UpdatePostDto} from "../../common/dto/update-post.dto";
 import {GetPostsDto} from "../../common/dto/get-posts.dto";
@@ -28,7 +25,9 @@ import {CreateCommentDto} from "../../common/dto/create-comment.dto";
 import {UpdateCommentDto} from "../../common/dto/update-comment.dto";
 import {UserData} from "../../common/types/user-data.interface";
 import {JWTUser} from "../../common/decorators/jwt-user.decorator";
+import {ApiCookieAuth, ApiOperation, ApiTags} from '@nestjs/swagger';
 
+@ApiTags('Post')
 @Controller('posts')
 export class PostController {
     constructor(
@@ -39,6 +38,7 @@ export class PostController {
 
     //POST-001 (게시물 조회)
     @Get()
+    @ApiOperation({ summary: 'Get posts' })
     async getPosts(@Query() query: GetPostsDto): Promise<any[]> {
         const { keyword, searchType, page, limit, sortField, sortBy } = query;
 
@@ -72,8 +72,10 @@ export class PostController {
 
     //POST-002 (게시물 작성)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Post()
     @UseInterceptors(FilesInterceptor('files', 5))
+    @ApiOperation({ summary: 'Create post' })
     async createPost(
         @UploadedFiles() files: Express.Multer.File[],
         @Body() postData: CreatePostDto,
@@ -94,14 +96,17 @@ export class PostController {
 
     //POST-003 (특정 게시물 조회)
     @Get('/:id')
+    @ApiOperation({ summary: 'Get post' })
     async getPostById(@Param('id') id: string) {
         return this.postService.getPost({ id: Number(id) });
     }
 
     //POST-004 (특정 게시물 수정)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Put('/:id')
     @UseInterceptors(FilesInterceptor('files', 5))
+    @ApiOperation({ summary: 'Update post' })
     async updatePost(
         @Param('id') id: string,
         @UploadedFiles() files: Express.Multer.File[],
@@ -124,7 +129,9 @@ export class PostController {
 
     //POST-005 (특정 게시물 삭제)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Delete('/:id')
+    @ApiOperation({ summary: 'Delete post' })
     async deletePost(
         @Param('id') id: string,
         @JWTUser() user: UserData
@@ -135,7 +142,9 @@ export class PostController {
 
     //POST-006 (특정 게시물 '추천' 추가)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Post('/:id/likes')
+    @ApiOperation({ summary: 'Add like to post' })
     async addLikePost(
         @Param('id') id: string,
         @JWTUser() user: UserData
@@ -146,8 +155,10 @@ export class PostController {
 
     //POST-007 (특정 게시물 '추천' 제거)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Delete('/:id/likes')
     @HttpCode(204)
+    @ApiOperation({ summary: 'Delete like of post' })
     async deleteLikePost(
         @Param('id') id: string,
         @JWTUser() user: UserData
@@ -158,13 +169,16 @@ export class PostController {
 
     //POST-008 (특정 게시물 댓글 목록 조회)
     @Get('/:postId/comments')
+    @ApiOperation({ summary: 'Get comments' })
     async getComments(@Param('postId') postId: string) {
         return this.postService.getComments(+postId);
     }
 
     //POST-009 (특정 게시물 댓글 작성)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Post('/:postId/comments')
+    @ApiOperation({ summary: 'Create comment' })
     async createComment(
         @Param('postId') postId: string,
         @Body() commentData: CreateCommentDto,
@@ -179,7 +193,9 @@ export class PostController {
 
     //POST-011 (특정 댓글 수정)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Put('/comments/:commentId')
+    @ApiOperation({ summary: 'Update comment' })
     async updateComment(
         @Param('commentId') commentId: string,
         @Body() commentData: UpdateCommentDto,
@@ -193,8 +209,10 @@ export class PostController {
 
     //POST-012 (특정 댓글 삭제)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Delete('/comments/:commentId')
     @HttpCode(204)
+    @ApiOperation({ summary: 'Delete comment' })
     async deleteComment(
         @Param('commentId') commentId: string,
         @JWTUser() user: UserData
@@ -207,7 +225,9 @@ export class PostController {
 
     //POST-013 (특정 댓글 '추천' 추가)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Post('/comments/:commentId/likes')
+    @ApiOperation({ summary: 'Add like to comment' })
     async addLikeComment(
         @Param('commentId') commentId: string,
         @JWTUser() user: UserData
@@ -218,8 +238,10 @@ export class PostController {
 
     //POST-014 (특정 댓글 '추천' 제거)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Delete('/comments/:commentId/likes')
     @HttpCode(204)
+    @ApiOperation({ summary: 'Delete like of comment' })
     async deleteLikeComment(
         @Param('commentId') commentId: string,
         @JWTUser() user: UserData

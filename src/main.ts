@@ -6,6 +6,7 @@ import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
 import { join } from 'path';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 const NODE_ENV = process.env.NODE_ENV || 'local';
 
@@ -26,8 +27,15 @@ async function bootstrap() {
     transform: true
   }));
 
-  // 정적 파일 제공 설정
-  console.log('Static files are served from:', join(__dirname, '..', '..', 'newbie-project-client'));
+  const config = new DocumentBuilder()
+      .setTitle('Heup-Pot')
+      .setDescription('The API description')
+      .setVersion('1.0')
+      .addCookieAuth()
+      .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api-docs', app, document);
 
   app.useStaticAssets(join(__dirname, '..', '..', '..', 'newbie-project-client')); // 정적 파일 경로 지정
 

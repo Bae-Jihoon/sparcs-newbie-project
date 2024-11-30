@@ -22,14 +22,18 @@ import {UpdateSpotDto} from "../../common/dto/update-spot.dto";
 import {UpdateSpotcommentDto} from "../../common/dto/update-spotcomment.dto";
 import {JWTUser} from "../../common/decorators/jwt-user.decorator";
 import {UserData} from "../../common/types/user-data.interface";
+import {ApiCookieAuth, ApiOperation, ApiTags} from '@nestjs/swagger';
 
+@ApiTags('Spot')
 @Controller('spots')
 export class SpotController {
     constructor(private readonly spotService: SpotService) {}
 
     //SPOT-001 (흡연스팟 추가)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Post()
+    @ApiOperation({ summary: 'Create spot' })
     async createSpot(
         @JWTUser() user: UserData,
         @Body() spotData: CreateSpotDto,
@@ -52,6 +56,7 @@ export class SpotController {
 
     //SPOT-002 (모든 흡연스팟 조회)
     @Get()
+    @ApiOperation({ summary: 'Get spots' })
     async getSpots(
         @Query() query: GetSpotsDto
     ) {
@@ -61,6 +66,7 @@ export class SpotController {
 
     //SPOT-003 (특정 흡연스팟 조회)
     @Get('/:spotId')
+    @ApiOperation({ summary: 'Get spot details' })
     async getSpot(
         @Param('spotId') spotId: string,
     ) {
@@ -69,7 +75,9 @@ export class SpotController {
 
     //SPOT-004 (특정 흡연스팟 수정)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Put('/:spotId')
+    @ApiOperation({ summary: 'Update spot' })
     async updateSpot(
         @Param('spotId') spotId: string,
         @JWTUser() user: UserData,
@@ -85,7 +93,9 @@ export class SpotController {
 
     //SPOT-005 (특정 흡연스팟 삭제)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Delete('/:spotId')
+    @ApiOperation({ summary: 'Delete spot' })
     async deleteSpot(
         @JWTUser() user: UserData,
         @Param('spotId') spotId: string,
@@ -96,7 +106,9 @@ export class SpotController {
 
     //SPOT-006 (특정 흡연스팟에 대한 댓글 작성)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Post('/:spotId/spotcomments')
+    @ApiOperation({ summary: 'Create comments of spot' })
     async createSpotComment(
         @JWTUser() user: UserData,
         @Param('spotId') spotId: string,
@@ -114,6 +126,7 @@ export class SpotController {
 
     //SPOT-007 (특정 스팟의 댓글 목록 조회)
     @Get('/:spotId/spotcomments')
+    @ApiOperation({ summary: 'Get comments of spot' })
     async getSpotComments(
         @Param('spotId') spotId: string,
     ) {
@@ -122,8 +135,10 @@ export class SpotController {
 
     //SPOT-008 (특정 스팟댓글 삭제)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Delete('/spotcomments/:spotcommentId')
     @HttpCode(204)
+    @ApiOperation({ summary: 'Delete comment of spot' })
     async deleteSpotComment(
         @JWTUser() user: UserData,
         @Param('spotcommentId') spotcommentId: string,
@@ -134,7 +149,9 @@ export class SpotController {
 
     //SPOT-009 (특정 스팟댓글 수정)
     @UseGuards(JwtAuthGuard)
+    @ApiCookieAuth()
     @Put('/spotcomments/:spotcommentId')
+    @ApiOperation({ summary: 'Update comment of spot' })
     async updateSpotComment(
         @JWTUser() user: UserData,
         @Param('spotcommentId') spotcommentId: string,
