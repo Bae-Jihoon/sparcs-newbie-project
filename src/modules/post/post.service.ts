@@ -278,24 +278,41 @@ export class PostService {
 
   //POST-008
   async getComments(postId: number) {
-    return this.prisma.comment.findMany({
-      where: { postId: postId},
-      select: {
-        id: true,
+    // 최상위 댓글만 가져오면서, 각 댓글의 children 관계를 포함
+    const comments = await this.prisma.comment.findMany({
+      where: { postId: postId, parentId: null }, // 최상위 댓글만
+      include: {
         author: {
           select: {
             nickname: true,
-            createdAt: true
           },
         },
-        content: true,
-        likenum: true,
-        createdAt: true,
-        parentId: true
+        children: {
+          include: {
+            author: {
+              select: {
+                nickname: true,
+              },
+            },
+            children: {
+              include: {
+                author: {
+                  select: {
+                    nickname: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
-      orderBy: { createdAt: 'asc'}
-    })
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return comments; // 최상위 댓글 리스트 반환 (children 포함)
   }
+
+
 
   //POST-009
   async createComment(
