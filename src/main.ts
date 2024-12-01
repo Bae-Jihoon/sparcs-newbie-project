@@ -37,8 +37,13 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document);
 
-  app.useStaticAssets(join(__dirname, '..', '..', '..', 'newbie-project-client')); // 정적 파일 경로 지정
-
+  //app.useStaticAssets(join(__dirname, '..', '..', '..', 'newbie-project-client')); // 정적 파일 경로 지정
+  app.enableCors({
+    origin: 'http://localhost:3000', // 클라이언트 URL
+    credentials: true, // 쿠키 등 허용
+  });
   await app.listen(process.env.PORT || 3000);
+  console.log('PORT:', process.env.PORT || 3000);
+
 }
 bootstrap();

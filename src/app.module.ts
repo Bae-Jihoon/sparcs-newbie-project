@@ -23,10 +23,10 @@ import {ServeStaticModule} from "@nestjs/serve-static";
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV}`,
     }),
-    ServeStaticModule.forRoot({
+    /*ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'newbie-project-client'),
       serveRoot: '/', // '/' 경로에서 정적 파일 제공
-    }),
+    }),*/
     AuthModule,
     UserModule,
     PostModule,
@@ -45,9 +45,9 @@ import {ServeStaticModule} from "@nestjs/serve-static";
   ],
 })
 export class AppModule {
-  constructor() {
+  /*constructor() {
     Logger.log(`Static files served from: ${join(__dirname, '..', '..', 'newbie-project-client')}`);
-  }
+  }*/
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(cookieParser()).forRoutes('*'); // 모든 라우트에 cookie-parser 적용
   }
